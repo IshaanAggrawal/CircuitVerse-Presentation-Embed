@@ -51,36 +51,55 @@
       margin: 17px 0px;
       color: #4CAF50;
       }
+
+      .cv-circuit-item {
+        background: #f2fef4;
+        border: 1px solid #b2e5c2;
+        border-radius: 7px;
+        padding: 10px 12px;
+        margin-bottom: 8px;
+        cursor: pointer;
+      }
+
+      .cv-circuit-item img {
+        width: 100%;
+        max-width: 320px;
+        display: block;
+        margin-bottom: 6px;
+        border-radius: 4px;
+      }
+
+      .cv-circuit-item .action {
+        background: #2196F3;
+        padding: 4px 14px;
+        font-size: 14px;
+      }
+
     </style>
   </head>
   <body>
     <form class="sidebar branding-below" >
       <h2>Insert Circuit in Slide</h2>
-      	
         <div class="block form-group">
-        
-        <input id="inp" type="text" id="circuit" name="circuit" placeholder="e.g. https://circuitverse.org/users/3/projects/247" style="width:100%" type="url" onchange="">
+          <input id="inp" type="text" name="circuit" placeholder="e.g. https://circuitverse.org/users/3/projects/247" style="width:100%" type="url" onchange="">
         </div>
-        
         <div class="block" id="button-bar">
-        <button class="action" id="run-embed">Insert</button>
+          <button class="action" id="run-embed">Insert</button>
         </div>
-        
-      
       <h5 class="error" id="error"></h5>
-      <img alt="Preview Circuit" id="preview-img" width=100% style="border-radius:5px" >
+      <img alt="Preview Circuit" id="preview-img" width=100% style="border-radius:5px; display:none;" >
     </form>
+    <hr style="margin: 18px 0 14px 0; border: none; border-top: 1px solid #e0e0e0;">
     <div class="sidebar center">
-   
+      <h4>Find Public Circuits by Email</h4>
+      <input id="email-input" type="email" placeholder="Enter user email..." style="width:100%; border-radius:8px; padding:8px; margin-bottom:8px;">
+      <button class="action" id="fetch-circuits">Get Circuits</button>
+      <div id="circuits-list" style="margin-top:10px;"></div>
     </div>
-    
     <div class="sidebar bottom">
-    
       <img alt="Add-on logo" class="logo"
         src="https://circuitverse.org/assets/CircuitVerse-c968d111d011b5a9fbd1dfc11efc32634e0971d6e5e7bb97b1cffce5927d8cd0.png" width=100% height=100% style="border-radius:5px">
-   
     </div>
-
     <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
     <script>
       $('#run-embed').click(runEmbed);
@@ -140,6 +159,49 @@
         return undefined;
       }
       
+      // Add event for fetching circuits by email
+      $('#fetch-circuits').click(function(e) {
+        e.preventDefault();
+        var email = $('#email-input').val();
+        $('#circuits-list').html('<em>Loading...</em>');
+        // Placeholder: Replace with actual API call
+        google.script.run
+          .withSuccessHandler(function(circuits) {
+            if (!circuits || circuits.length === 0) {
+              $('#circuits-list').html('<em>No public circuits found for this user.</em>');
+              return;
+            }
+            var html = '';
+            circuits.forEach(function(circuit) {
+              html += '<div class="cv-circuit-item" data-url="'+circuit.url+'" style="background:#f2fef4;border:1px solid #b2e5c2;border-radius:7px;padding:10px 12px;margin-bottom:8px;cursor:pointer;">'+
+                '<img src="'+(circuit.image || '')+'" alt="circuit preview" style="width:100%;max-width:320px;display:block;margin-bottom:6px;border-radius:4px;">'+
+                '<div style="display:flex;justify-content:space-between;align-items:center;">'+
+                '<span><strong>'+circuit.name+'</strong></span>'+
+                '<button class="action view-btn" data-url="'+circuit.url+'" style="background:#2196F3;padding:4px 14px;font-size:14px;">View</button>'+
+                '</div>'+
+              '</div>';
+            });
+            $('#circuits-list').html(html);
+          })
+          .withFailureHandler(function(msg) {
+            $('#circuits-list').html('<span class="error">'+msg+'</span>');
+          })
+          .getPublicCircuitsByEmail(email);
+      });
+      // Allow clicking a circuit to fill the input
+      $(document).on('click', '.cv-circuit-item', function(e) {
+        // Prevent if View button is clicked
+        if($(e.target).hasClass('view-btn')) return;
+        var url = $(this).data('url');
+        $('#inp').val(url).trigger('input');
+        $('html, body').animate({ scrollTop: 0 }, 'fast');
+      });
+      // View button opens circuit in new tab
+      $(document).on('click', '.view-btn', function(e) {
+        e.stopPropagation();
+        var url = $(this).data('url');
+        window.open(url, '_blank');
+      });
     </script>
   </body>
 </html>
